@@ -1,4 +1,3 @@
-require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
@@ -6,7 +5,9 @@ const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { Server } = require("socket.io");
-const fetch = require("node-fetch");  // Ensure you have `node-fetch` installed
+const fetch = require("node-fetch");
+
+require("dotenv").config();
 
 // Initialize Express
 const app = express();
@@ -53,7 +54,7 @@ const Order = mongoose.model("Order", new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 }));
 
-// Function to Call FastAPI Model
+// Function to Call FastAPI Model and Update MongoDB
 const runFastAPIModel = async (message, userId) => {
   try {
     console.log(`📡 Sending message to FastAPI model: ${message} for user: ${userId}`);
@@ -70,14 +71,81 @@ const runFastAPIModel = async (message, userId) => {
 
     const jsonResponse = await response.json();
     console.log(`🤖 FastAPI Response: ${JSON.stringify(jsonResponse)}`);
-    
-    return jsonResponse.response || "unknown";
+
+    const { intent, entities } = jsonResponse.response;
+
+    if (intent === "add_product" || intent === "update_product") {
+      const { name, price, quantity, unit } = entities;
+      const productName = name.toLowerCase();
+
+      // Parse quantity and price
+      const parsedQuantity = parseFloat(quantity);
+      const parsedPrice = parseFloat(price);
+
+      if (isNaN(parsedQuantity) || isNaN(parsedPrice)) {
+        throw new Error("Invalid quantity or price format");
+      }
+
+      const existingProduct = await Product.findOne({ name: productName, farmerId: userId });
+
+      if (existingProduct) {
+        existingProduct.price = parsedPrice;
+        existingProduct.quantity = parsedQuantity;
+        await existingProduct.save();
+        return `🔄 Updated '${productName}' for farmer ${userId}.`;
+      } else {
+        const newProduct = new Product({
+          name: productName,
+          price: parsedPrice,
+          quantity: parsedQuantity,
+          farmerId: userId,
+        });
+        await newProduct.save();
+        return `✅ Product '${productName}' added successfully for farmer ${userId}.`;
+      }
+    } else if (intent === "check_availability") {
+      const { name } = entities;
+      const productName = name.toLowerCase();
+
+      const existingProduct = await Product.findOne({ name: productName, farmerId: userId });
+
+      if (existingProduct) {
+        return `✅ '${productName}' is available: ${existingProduct.quantity} kg at ₹${existingProduct.price}/kg.`;
+      } else {
+        return `❌ '${productName}' not found for farmer ${userId}.`;
+      }
+    } else if (intent === "view_listings" || intent === "view_current_listings") {
+      const products = await Product.find({ farmerId: userId });
+      const listings = products.map(product => ({
+        name: product.name,
+        quantity: product.quantity,
+        price: product.price
+      }));
+      return listings;
+    }
+
+    return "🤖 Unable to process request.";
   } catch (error) {
     console.error(`❌ FastAPI Model Error: ${error.message}`);
     return "unknown";
   }
 };
 
+// Middleware to authenticate and attach user to socket
+io.use((socket, next) => {
+  const token = socket.handshake.query.token;
+  if (token) {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) return next(new Error("Authentication error"));
+      socket.user = decoded;
+      next();
+    });
+  } else {
+    next(new Error("Authentication error"));
+  }
+});
+
+// WebSocket Chatbot Flow: Frontend → Node.js → FastAPI → Node.js → Frontend
 io.on("connection", (socket) => {
   console.log(`🔗 User connected with ID: ${socket.id}`);
 
@@ -114,7 +182,6 @@ app.post("/auth/register", async (req, res) => {
 });
 
 // User Login
-// User Login
 app.post("/auth/login", async (req, res) => {
   try {
     const { email, password, userType } = req.body;
@@ -130,75 +197,6 @@ app.post("/auth/login", async (req, res) => {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
-// WebSocket Chatbot
-io.on("connection", (socket) => {
-  const token = socket.handshake.query.token;
-  if (!token) {
-    console.log("❌ Unauthorized WebSocket connection: No token provided");
-    socket.disconnect();
-    return;
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.user = decoded;
-    console.log(`🔗 User Connected: ${decoded.id} as ${decoded.userType}`);
-    socket.emit("botMessage", { message: getWelcomeMessage(decoded.userType) });
-
-    socket.on("userMessage", async (data) => {
-      console.log(`📩 Received message: ${data.message}`);
-      const { intent, entities } = await recognizeIntent(data.message.toLowerCase());
-      console.log(`🧠 Recognized Intent: ${intent}, Entities: ${JSON.stringify(entities)}`);
-
-      if (socket.user.userType === "farmer") {
-        await handleFarmerProductActions(socket, intent, entities);
-      } else {
-        await handleBuyerProductQueries(socket, intent, entities);
-      }
-    });
-
-    socket.on("disconnect", () => console.log(`❌ User Disconnected: ${decoded.id}`));
-  } catch (error) {
-    console.log(`❌ Invalid WebSocket token: ${error.message}`);
-    socket.disconnect();
-  }
-});
-
-// Dynamic Welcome Messages
-const getWelcomeMessage = (userType) => {
-  return userType === "farmer"
-    ? "Hi! You can say:\n- 'I need to add product tomato 300kg for 70/kg'"
-    : "Hi! You can say:\n- 'I need 2kg of onions'";
-};
-
-
-
-// ✅ Handle Farmer Product Actions
-const handleFarmerProductActions = async (socket, intent, entities) => {
-  console.log(`🛠️ Handling Farmer Intent: ${intent}`);
-  console.log(`🔍 Extracted Entities: ${JSON.stringify(entities)}`);
-
-  if (intent !== "add_product" || !entities.product || !entities.quantity || !entities.price) {
-    console.log("❌ Invalid product details.");
-    return socket.emit("botMessage", { message: "⚠️ Invalid product details. Try: 'I need to add product tomato 300kg for 70/kg'" });
-  }
-
-  try {
-    const newProduct = new Product({
-      name: entities.product,
-      price: entities.price,
-      quantity: entities.quantity,
-      farmerId: socket.user.id
-    });
-    await newProduct.save();
-
-    console.log(`✅ Product Saved: ${JSON.stringify(newProduct)}`);
-    socket.emit("botMessage", { message: `✅ Product added: ${entities.product} - ${entities.quantity} kg at ₹${entities.price}/kg.` });
-  } catch (error) {
-    console.error(`❌ Error Saving Product: ${error.message}`);
-    socket.emit("botMessage", { message: "❌ Failed to add product. Please try again later." });
-  }
-};
 
 // Start Server
 const PORT = process.env.PORT || 8080;
