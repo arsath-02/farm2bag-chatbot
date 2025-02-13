@@ -8,7 +8,7 @@ const Footer = () => {
         <div className="footer-content">
             <div className="footer-content-left">
               <img src={assets.logo} alt=""/>
-              <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.
+              <p> Discover the freshest farm-to-table experience with AgriFresh! 🌿🥕 We connect farmers directly with customers, offering a diverse selection of farm-fresh fruits, vegetables, and organic produce. Enjoy the goodness of nature, handpicked for quality and taste. Whether you're a farmer looking to reach more customers or a buyer seeking the best produce, AgriFresh brings the market to your fingertips—fresh, reliable, and straight from the source!
 
 </p>
 <div className="footer-social-icons">
@@ -30,12 +30,12 @@ const Footer = () => {
             <h2>GET IN TOUCH</h2>
             <ul>
               <li>+1-9384-3575-12</li>
-              <li>contact@tomato.com</li>
+              <li>contact@AgriFresh.com</li>
             </ul>
         </div>
         </div>
         <hr />
-        <p className="footer-copyright">Copyright 2024 Tomato.com -All Right Reserved.</p>
+        <p className="footer-copyright">Copyright 2024 AgriFresh.com -All Right Reserved.</p>
       
     </div>
   )

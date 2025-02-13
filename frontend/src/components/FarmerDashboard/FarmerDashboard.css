@@ -1,0 +1,140 @@
+/* Farmer Dashboard Modal Styles */
+.farmer-dashboard-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Ensure modal is on top */
+  }
+  
+  .farmer-dashboard-content {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 900px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    overflow-y: auto;
+    max-height: 90vh; /* Limit height to prevent overflow */
+  }
+  
+  .farmer-details {
+    margin-bottom: 30px;
+  }
+  
+  .farmer-details h2 {
+    color: #262626;
+    font-size: 24px;
+    margin-bottom: 10px;
+    font-weight: bold;
+  }
+  
+  .farmer-details p {
+    color: #747474;
+    font-size: 16px;
+    margin-bottom: 5px;
+  }
+  
+  .farmer-products {
+    margin-top: 30px;
+  }
+  
+  .farmer-products h2 {
+    color: #262626;
+    font-size: 24px;
+    margin-bottom: 20px;
+    font-weight: bold;
+  }
+  
+  .products-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  
+  .product-item {
+    width: 200px;
+    padding: 10px;
+    background-color: white;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+  }
+  
+  .product-item:hover {
+    transform: scale(1.05); /* Hover effect to scale up */
+  }
+  
+  .product-item img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+  
+  .product-item p {
+    color: #262626;
+    font-size: 14px;
+    margin-top: 10px;
+  }
+  
+  .product-item a {
+    display: inline-block;
+    margin-top: 10px;
+    color: #16be24;
+    font-weight: bold;
+    text-decoration: none;
+  }
+  
+  .product-item a:hover {
+    text-decoration: underline;
+  }
+  
+  .close-dashboard {
+    margin-top: 20px;
+    padding: 12px 20px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+  }
+  
+  .close-dashboard:hover {
+    background-color: #c0392b;
+  }
+  
+  .farmer-dashboard {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .farmer-details,
+  .farmer-products {
+    margin-bottom: 30px;
+  }
+  
+  /* Mobile Responsive */
+  @media (max-width: 768px) {
+    .farmer-dashboard-content {
+      width: 95%;
+      padding: 20px;
+    }
+  
+    .products-list {
+      display: block;
+    }
+  
+    .product-item {
+      width: 100%;
+    }
+  }
+  

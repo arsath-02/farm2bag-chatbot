@@ -1,0 +1,109 @@
+/* Apply base styles for form layout */
+.register-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f0f0f0;
+  }
+  
+  /* Form box container */
+  .register-box {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .register-title {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #4CAF50;
+    margin-bottom: 20px;
+  }
+  
+  .error-message {
+    color: red;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  
+  /* Input fields section */
+  .input-field {
+    margin-bottom: 16px;
+  }
+  
+  .input-field label {
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  
+  .input-field input,
+  .input-field select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    outline: none;
+  }
+  
+  .input-field input:focus,
+  .input-field select:focus {
+    border-color: #4CAF50;
+  }
+  
+  /* Submit button */
+  .register-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-top: 12px;
+  }
+  
+  .register-button:hover {
+    background-color: #388e3c;
+  }
+  
+  /* Text and link at the bottom */
+  .already-have-account {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 14px;
+    color: #666;
+  }
+  
+  .signup-link {
+    color: #4CAF50;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  
+  .signup-link:hover {
+    text-decoration: underline;
+  }
+  
+  /* Fade-in animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
