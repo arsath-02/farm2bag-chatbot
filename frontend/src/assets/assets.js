@@ -2,8 +2,26 @@ import basket_icon from './basket_icon.png';
 import logo from './logo.webp';
 import header_img from './header_img.png';
 import search_icon from './search_icon.png';
-import pomegranate from './pomegranate.jpg';
 import beetroot from './beetroot.jpg';
+import fruits from './fruits.jpg';
+import vegetables from './vegetables.jpg';
+import apple from './apple.jpg';
+import banana from './banana.jpg';
+import grapes from './grapes.jpg';
+import guava from './guava.jpg';
+import mango from './mango.jpg';
+import orange from './orange.jpg';
+import papaya from './papaya.jpg';
+import pineapple from './pineapple.jpg'
+import pomegranate from './pomegranate.jpg';
+import watermelon from './watermelon.jpg';
+import carrots from './carrots.jpg';
+import cauliflower from './cauliflower.jpg';
+import greenchilli from './greenchilli.jpg';
+import onion from './onion.jpeg';
+import potato from './potato.jpg';
+import tomato from './tomato.jpg';
+
 
 import menu_3 from './menu_3.png';
 import menu_4 from './menu_4.png';
@@ -81,141 +99,157 @@ export const assets = {
     logout_icon,
     bag_icon,
     parcel_icon,
+    fruits,
+    vegetables,
+    apple,
+    banana,
+    grapes,
+    guava,
+    mango,
+    orange,
+    papaya,
+    pineapple,
     pomegranate,
+    watermelon,
+    beetroot,
+    carrots,
+    cauliflower,
+    greenchilli,
+    onion,
+    potato,
+    tomato,
     beetroot
 };
 
 export const menu_list = [
     {
         menu_name: "Fruits",
-        menu_image: pomegranate
+        menu_image: fruits
     },
     {
         menu_name: "Vegetables",
-        menu_image: beetroot
+        menu_image: vegetables
     },
-    {
-        menu_name: "Deserts",
-        menu_image: menu_3
-    },
-    {
-        menu_name: "Sandwich",
-        menu_image: menu_4
-    },
-    {
-        menu_name: "Cake",
-        menu_image: menu_5
-    },
-    {
-        menu_name: "Pure Veg",
-        menu_image: menu_6
-    },
-    {
-        menu_name: "Pasta",
-        menu_image: menu_7
-    },
-    {
-        menu_name: "Noodles",
-        menu_image: menu_8
-    }
 ];
 
 export const food_list = [
     {
         _id: "1",
-        name: "Greek salad",
-        image: food_1,
-        price: 12,
+        name: "Apple",
+        image: apple,
+        price: 90,
         description: "Food provides essential nutrients for overall health and well-being",
-        category: "Salad"
+        category: "Fruits"
     },
     {
         _id: "2",
-        name: "Veg salad",
-        image: food_2,
-        price: 18,
+        name: "Banana",
+        image: banana,
+        price: 45,
         description: "Food provides essential nutrients for overall health and well-being",
-        category: "Salad"
+        category: "Fruits"
     },
     {
         _id: "3",
-        name: "Clover Salad",
-        image: food_3,
-        price: 16,
+        name: "Mango",
+        image: mango,
+        price: 100,
         description: "Food provides essential nutrients for overall health and well-being",
-        category: "Salad"
+        category: "Fruits"
     },
     {
         _id: "4",
-        name: "Chicken Salad",
-        image: food_4,
-        price: 24,
+        name: "Orange",
+        image: orange,
+        price: 70,
         description: "Food provides essential nutrients for overall health and well-being",
-        category: "Salad"
+        category: "Fruits"
     },
     {
         _id: "5",
-        name: "Lasagna Rolls",
-        image: food_5,
-        price: 14,
+        name: "Papaya",
+        image: papaya,
+        price: 60,
         description: "Food provides essential nutrients for overall health and well-being",
-        category: "Rolls"
+        category: "Fruits"
     },
     {
         _id: "6",
-        name: "Peri Peri Rolls",
-        image: food_6,
-        price: 12,
+        name: "Pineapple",
+        image: pineapple,
+        price: 80,
         description: "Food provides essential nutrients for overall health and well-being",
-        category: "Rolls"
+        category: "Fruits"
     },
     {
         _id: "7",
-        name: "Chicken Rolls",
-        image: food_7,
-        price: 20,
+        name: "Pomegranate",
+        image: pomegranate,
+        price: 55,
         description: "Food provides essential nutrients for overall health and well-being",
-        category: "Rolls"
+        category: "Fruits"
     },
     {
         _id: "8",
-        name: "Veg Rolls",
-        image: food_8,
-        price: 15,
+        name: "Watermelon",
+        image: watermelon,
+        price: 45,
         description: "Food provides essential nutrients for overall health and well-being",
-        category: "Rolls"
+        category: "Fruits"
     },
     {
         _id: "9",
-        name: "Ripple Ice Cream",
-        image: food_9,
-        price: 14,
+        name: "Carrot",
+        image: carrots,
+        price: 30,
         description: "Food provides essential nutrients for overall health and well-being",
-        category: "Deserts"
+        category: "Vegetables"
     },
     {
         _id: "10",
-        name: "Fruit Ice Cream",
-        image: food_10,
-        price: 22,
+        name: "Cauliflower",
+        image: cauliflower,
+        price: 35,
         description: "Food provides essential nutrients for overall health and well-being",
-        category: "Deserts"
+        category: "Vegetables"
     },
     {
         _id: "11",
-        name: "Jar Ice Cream",
-        image: food_11,
-        price: 10,
+        name: "Chilli",
+        image: greenchilli,
+        price: 20,
         description: "Food provides essential nutrients for overall health and well-being",
-        category: "Deserts"
-    },
-    {
+        category: "Vegetables"
+    },{
         _id: "12",
-        name: "Vanilla Ice Cream",
-        image: food_12,
-        price: 12,
+        name: "Onion",
+        image: onion,
+        price: 50,
         description: "Food provides essential nutrients for overall health and well-being",
-        category: "Deserts"
+        category: "Vegetables"
+    },{
+        _id: "13",
+        name: "Potato",
+        image: potato,
+        price: 60,
+        description: "Food provides essential nutrients for overall health and well-being",
+        category: "Vegetables"
+    },{
+        _id: "14",
+        name: "Tomato",
+        image: tomato,
+        price: 40,
+        description: "Food provides essential nutrients for overall health and well-being",
+        category: "Vegetables"
+    },{
+        _id: "15",
+        name: "Beetroot",
+        image: beetroot,
+        price: 35,
+        description: "Food provides essential nutrients for overall health and well-being",
+        category: "Vegetables"
     }
+
+
     // Continue adding the rest of the food items...
 ];

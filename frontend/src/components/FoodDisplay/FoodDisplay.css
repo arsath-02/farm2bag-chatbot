@@ -1,18 +1,81 @@
-.food-display{
+.food-display {
     margin-top: 30px;
-
+    padding: 20px;
+    background-color: #f7f7f7; /* Light background for contrast */
+    border-radius: 12px; /* Rounded corners */
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1); /* Subtle shadow for elevation */
 }
 
-.food-display h2{
-    font-size: max(2vw,24px);
+.food-display h2 {
+    font-size: max(2vw, 24px);
     font-weight: 600;
+    text-align: center; /* Center the title */
+    color: #333; /* Dark color for readability */
+    margin-bottom: 20px; /* Add margin for spacing */
 }
-.food-display-list{
+
+.food-display-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill,minmax(240px,1fr));
-    margin-top:30px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    margin-top: 30px;
     gap: 30px;
     row-gap: 50px;
-
 }
 
+.no-products-message {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #666; /* Muted color for message */
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f2f2f2;
+    margin-top: 20px;
+    font-weight: 500;
+}
+
+.fruit-image-container {
+    margin-top: 20px;
+    text-align: center;
+  }
+  
+  .fruit-image {
+    width: 100%;
+    max-width: 300px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+
+  .additional-images {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); /* 5 images per row */
+    gap: 20px;
+    justify-items: center;
+    margin-top: 20px;
+  }
+  
+  .additional-image-item {
+    width: 150px;
+    text-align: center;
+  }
+  
+  .additional-image-item img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .additional-item-name {
+    font-size: 1rem;
+    font-weight: bold;
+    margin-top: 8px;
+  }
+  
+  .additional-item-price {
+    font-size: 0.9rem;
+    color: #666;
+  }
+  
