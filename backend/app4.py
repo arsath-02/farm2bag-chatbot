@@ -7,6 +7,8 @@ from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 from groq import Groq
 from pymongo import MongoClient
+from datetime import datetime
+from bson import ObjectId
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -36,27 +38,48 @@ prompt_template = PromptTemplate(
     input_variables=["user_type", "history", "user_query", "language"],
     template="""
     You are an AI assistant helping {user_type} with agricultural product management.
+    Your role is to assist with various tasks and provide accurate and structured responses based on the given intents.
 
     **User Type**: {user_type}
     **Conversation History**: {history}
     **User Query**: {user_query}
     **Language**: {language}
 
+    **Intents**:
+    - add_product
+    - check_availability
+    - update_product
+    - show_me
+    - view_listings
+    - search_products
+    - compare_prices
+    - place_order
+
+    Please respond accurately in the same language as the user query, ensuring your response matches one of the provided intents.
+
     **For Farmers**:
-    - Assist in **adding, updating, or removing products**.
+    - Assist with **adding, updating, or removing products**.
     - Confirm **product name, quantity, and price** before saving.
-    - Provide **market price trends and seasonal insights**.
+    - Offer **market price trends and seasonal insights**.
+    - Ensure clarity and accuracy in responses.
 
     **For Customers**:
-    - Assist in **placing orders**.
+    - Assist with **placing orders**.
     - Confirm **product availability, quantity, and price**.
     - Suggest alternatives if a product is out of stock.
+    - Ensure clarity and accuracy in responses.
 
-    The response should be in the **same language** as the user query.
+    Keep the conversation dynamic by adapting to the user's needs and queries while maintaining a friendly and professional tone. Provide relevant information and solutions based on the user's context and preferences.
 
-    Be accurate and structured in responses.
+    Remember to:
+    - Use structured and well-organized responses.
+    - Be engaging and conversational.
+    - Adapt to any changes in user intent dynamically within the specified intents.
+    - Stay focused on the task at hand and ensure user satisfaction.
+    - All the intents should be in the above given format
     """
 )
+
 
 # Query Groq AI
 def query_groq(message, user_type, farmer_id):
@@ -128,8 +151,14 @@ def chat_bot(message, user_type, farmer_id):
         return {"intent": "update_product", "entities": extracted_entities}
     if intent_data["intent"] == "view_listings" or intent_data["intent"] == "view_current_listings":
         return {"intent": "view_listings", "entities": extracted_entities}
-    if intent_data["intent"] == "show vegetables under ₹50 per kg":
+    if intent_data["intent"] == "show_me":
         return show_vegetables(extracted_entities)
+    if intent_data["intent"] == "search_products":
+        return search_products(extracted_entities.get("filters", {}).get("product_name", ""))
+    if intent_data["intent"] == "compare_prices":
+        return compare_prices(extracted_entities.get("filters", {}).get("product_name", ""))
+    if intent_data["intent"] == "place_order":
+        return order_place(farmer_id, extracted_entities.get("product", {}).get("name", ""), extracted_entities.get("product", {}).get("quantity", 0))
 
     return {"intent": "unknown", "entities": {}}
 
@@ -144,6 +173,69 @@ def show_vegetables(entities):
 
     product_list = [{"name": product["name"], "price": product["price"]} for product in products]
     return {"intent": "show vegetables under ₹50 per kg", "entities": product_list}
+
+
+from datetime import datetime
+from bson import ObjectId
+
+def order_place(user_id, product_name, quantity):
+    """Places an order for a product after checking availability."""
+
+    product_name = product_name.lower()
+
+    # Atomically find and update product stock
+    product = products_collection.find_one_and_update(
+        {"name": product_name, "quantity": {"$gte": quantity}},  
+        {"$inc": {"quantity": -quantity}},  
+        return_document=True  
+    )
+
+    if product:
+        total_price = product["price"] * quantity  # Calculate total price
+
+        order = {
+            "_id": ObjectId(),
+            "user_id": ObjectId(user_id),
+            "product_name": product_name,
+            "quantity": quantity,
+            "price_per_kg": product["price"],
+            "total_price": total_price,
+            "status": "Confirmed",
+            "createdAt": datetime.utcnow()
+        }
+        
+        db["orders"].insert_one(order)  # Insert order into the database
+
+        return {
+            "intent": "order_place",
+            "message": f"✅ Order placed: {quantity} kg of {product_name} at ₹{product['price']}/kg. Total: ₹{total_price}.",
+            "order_id": str(order["_id"])
+        }
+    
+    return {
+        "intent": "order_place",
+        "message": f"❌ '{product_name}' is out of stock or insufficient quantity available."
+    }
+
+
+def compare_prices(product_name):
+    """Fetches and compares prices of a product from different sellers."""
+    product_name = product_name.lower()
+    products = products_collection.find({"name": product_name})
+
+    price_list = [{"farmer_id": product["farmerId"], "price": product["price"], "quantity": product["quantity"]} for product in products]
+
+    return {"intent": "compare_prices", "results": price_list if price_list else f"❌ No listings found for '{product_name}'."}
+
+
+def search_products(query):
+    """Searches for products matching the given query."""
+    search_query = {"name": {"$regex": query, "$options": "i"}}  # Case-insensitive search
+    products = products_collection.find(search_query)
+
+    product_list = [{"name": product["name"], "price": product["price"], "quantity": product["quantity"]} for product in products]
+
+    return {"intent": "search_products", "results": product_list if product_list else "❌ No products found matching the query."}
 
 # Check Product Availability
 def check_product_availability(product_name, farmer_id):

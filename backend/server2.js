@@ -1,13 +1,17 @@
-const express = require("express");
-const http = require("http");
-const cors = require("cors");
-const mongoose = require("mongoose");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const { Server } = require("socket.io");
-const fetch = require("node-fetch");
+import express from "express";
+import http from "http";
+import cors from "cors";
+import mongoose from "mongoose";
+import { Server } from "socket.io";
+import fetch from "node-fetch";
+import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
+import authRoutes from "./routes/auth.js";
+import User from "./models/user.js";
+import Product from "./models/products.js";
+import Order from "./models/order.js";
 
-require("dotenv").config();
+dotenv.config();
 
 // Initialize Express
 const app = express();
@@ -27,107 +31,176 @@ mongoose.connect(process.env.MONGO_URI, {
 }).then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.log("❌ MongoDB Error:", err));
 
-// MongoDB Schemas
-const User = mongoose.model("User", new mongoose.Schema({
-  firstname: String,
-  lastname: String,
-  email: { type: String, unique: true, required: true },
-  password: { type: String, required: true },
-  phonenumber: String,
-  userType: { type: String, enum: ["customer", "farmer"], required: true },
-}));
-
-const Product = mongoose.model("Product", new mongoose.Schema({
-  name: { type: String, required: true },
-  price: { type: Number, required: true },
-  quantity: { type: Number, required: true },
-  farmerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  createdAt: { type: Date, default: Date.now },
-}));
-
-const Order = mongoose.model("Order", new mongoose.Schema({
-  customerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-  quantity: { type: Number, required: true },
-  totalPrice: { type: Number, required: true },
-  status: { type: String, default: "Pending" },
-  createdAt: { type: Date, default: Date.now },
-}));
-
-// Function to Call FastAPI Model and Update MongoDB
+// Use Routes
+app.use("/auth", authRoutes);
 const runFastAPIModel = async (message, userId) => {
   try {
-    console.log(`📡 Sending message to FastAPI model: ${message} for user: ${userId}`);
+    console.log(`📡 Sending message to FastAPI: ${message} for user: ${userId}`);
 
     const response = await fetch("http://127.0.0.1:8080/predict", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: message, userId: userId }),
+      body: JSON.stringify({ message, userId }),
     });
 
     if (!response.ok) {
-      throw new Error(`FastAPI Model Error: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`FastAPI Model Error: ${response.statusText} - ${errorText}`);
     }
 
     const jsonResponse = await response.json();
     console.log(`🤖 FastAPI Response: ${JSON.stringify(jsonResponse)}`);
 
     const { intent, entities } = jsonResponse.response;
+    const products = entities?.products ? [entities.products] : [];
+    const orders = entities?.orders ? [entities.orders] : [];
 
-    if (intent === "add_product" || intent === "update_product") {
-      const { name, price, quantity, unit } = entities;
-      const productName = name.toLowerCase();
+    switch (intent) {
+      // ✅ 1. Product Management
+      case "add_product":
+      case "update_product": {
+        if (products.length === 0) return "❌ No product details provided.";
+        
+        const { name, price, quantity } = products[0];
+        if (!name || isNaN(parseFloat(price)) || isNaN(parseFloat(quantity))) {
+          return "❌ Invalid product details.";
+        }
 
-      // Parse quantity and price
-      const parsedQuantity = parseFloat(quantity);
-      const parsedPrice = parseFloat(price);
+        const productName = name.toLowerCase();
+        const parsedPrice = parseFloat(price);
+        const parsedQuantity = parseFloat(quantity);
 
-      if (isNaN(parsedQuantity) || isNaN(parsedPrice)) {
-        throw new Error("Invalid quantity or price format");
+        // Extract unit from price field (e.g., "50/kg" → unit: "kg")
+        const priceMatch = price.match(/(\d+)(\/)([a-zA-Z]+)/);
+        const unit = priceMatch ? priceMatch[3] : "kg"; // Default to kg
+
+        // Ensure required fields are set
+        const availability = "In Stock"; // Default availability
+        const harvestDate = new Date(); // Set current date
+        const category = getCategory(productName); // Function to determine category
+
+        const existingProduct = await Product.findOne({ name: productName, farmerId: userId });
+
+        if (existingProduct) {
+          existingProduct.price = parsedPrice;
+          existingProduct.quantity = parsedQuantity;
+          existingProduct.unit = unit;
+          existingProduct.availability = availability;
+          existingProduct.harvestDate = harvestDate;
+          existingProduct.category = category;
+          await existingProduct.save();
+          return `🔄 Updated '${productName}' successfully.`;
+        } else {
+          const newProduct = new Product({
+            name: productName,
+            price: parsedPrice,
+            quantity: parsedQuantity,
+            unit,
+            availability,
+            harvestDate,
+            category,
+            farmerId: userId,
+          });
+          await newProduct.save();
+          return `✅ Product '${productName}' added successfully.`;
+        }
       }
 
-      const existingProduct = await Product.findOne({ name: productName, farmerId: userId });
+      case "delete_product": {
+        if (products.length === 0) return "❌ No product specified.";
+        const { name } = products[0];
+        const productName = name.toLowerCase();
 
-      if (existingProduct) {
-        existingProduct.price = parsedPrice;
-        existingProduct.quantity = parsedQuantity;
-        await existingProduct.save();
-        return `🔄 Updated '${productName}' for farmer ${userId}.`;
-      } else {
-        const newProduct = new Product({
-          name: productName,
-          price: parsedPrice,
+        const deleted = await Product.findOneAndDelete({ name: productName, farmerId: userId });
+        return deleted ? `🗑️ Product '${productName}' deleted.` : `❌ '${productName}' not found.`;
+      }
+
+      case "view_listings":
+      case "view_current_listings": {
+        const productList = await Product.find({ farmerId: userId });
+        if (productList.length === 0) return "📭 No products listed.";
+        
+        return productList.map(p => `${p.name}: ${p.quantity}kg at ₹${p.price}/kg`).join("\n");
+      }
+
+      case "check_availability": {
+        if (products.length === 0) return "❌ No product specified.";
+        const { name } = products[0];
+        const productName = name.toLowerCase();
+
+        const existingProduct = await Product.findOne({ name: productName, farmerId: userId });
+
+        return existingProduct
+          ? `✅ '${productName}' available: ${existingProduct.quantity}kg at ₹${existingProduct.price}/kg.`
+          : `❌ '${productName}' not found.`;
+      }
+
+      // ✅ 2. Order Management
+      case "place_order": {
+        if (orders.length === 0) return "❌ No order details provided.";
+        
+        const { product_name, quantity, buyerId } = orders[0];
+        const productName = product_name.toLowerCase();
+        const parsedQuantity = parseFloat(quantity);
+
+        const product = await Product.findOne({ name: productName });
+        if (!product || product.quantity < parsedQuantity) {
+          return `❌ Not enough stock for '${productName}'.`;
+        }
+
+        product.quantity -= parsedQuantity;
+        await product.save();
+
+        const newOrder = new Order({
+          productName,
           quantity: parsedQuantity,
-          farmerId: userId,
+          buyerId,
+          sellerId: userId,
+          status: "Placed",
         });
-        await newProduct.save();
-        return `✅ Product '${productName}' added successfully for farmer ${userId}.`;
-      }
-    } else if (intent === "check_availability") {
-      const { name } = entities;
-      const productName = name.toLowerCase();
 
-      const existingProduct = await Product.findOne({ name: productName, farmerId: userId });
-
-      if (existingProduct) {
-        return `✅ '${productName}' is available: ${existingProduct.quantity} kg at ₹${existingProduct.price}/kg.`;
-      } else {
-        return `❌ '${productName}' not found for farmer ${userId}.`;
+        await newOrder.save();
+        return `🛒 Order placed: ${parsedQuantity}kg of '${productName}'.`;
       }
-    } else if (intent === "view_listings" || intent === "view_current_listings") {
-      const products = await Product.find({ farmerId: userId });
-      const listings = products.map(product => ({
-        name: product.name,
-        quantity: product.quantity,
-        price: product.price
-      }));
-      return listings;
+
+      case "cancel_order": {
+        if (orders.length === 0) return "❌ No order specified.";
+        const { orderId } = orders[0];
+
+        const order = await Order.findById(orderId);
+        if (!order || order.sellerId !== userId) {
+          return "❌ Order not found.";
+        }
+
+        order.status = "Cancelled";
+        await order.save();
+        return `🚫 Order '${orderId}' cancelled.`;
+      }
+
+      case "track_order": {
+        if (orders.length === 0) return "❌ No order specified.";
+        const { orderId } = orders[0];
+
+        const order = await Order.findById(orderId);
+        return order ? `📦 Order '${orderId}' status: ${order.status}.` : "❌ Order not found.";
+      }
+
+      // ✅ 3. General Chat
+      case "greet":
+        return "👋 Hello! How can I assist you today?";
+      
+      case "goodbye":
+        return "👋 Goodbye! Have a great day!";
+      
+      case "fallback":
+        return "🤖 Sorry, I didn't understand that.";
+
+      default:
+        return "🤖 I'm not sure how to help with that.";
     }
-
-    return "🤖 Unable to process request.";
   } catch (error) {
     console.error(`❌ FastAPI Model Error: ${error.message}`);
-    return "unknown";
+    return "🚨 An error occurred.";
   }
 };
 
@@ -146,6 +219,7 @@ io.use((socket, next) => {
 });
 
 // WebSocket Chatbot Flow: Frontend → Node.js → FastAPI → Node.js → Frontend
+// WebSocket Chatbot Flow: Frontend → Node.js → FastAPI → Node.js → Frontend
 io.on("connection", (socket) => {
   console.log(`🔗 User connected with ID: ${socket.id}`);
 
@@ -155,47 +229,19 @@ io.on("connection", (socket) => {
     // Send user message to FastAPI
     const botReply = await runFastAPIModel(data.message.toLowerCase(), socket.user.id);
 
-    // Send response back to frontend
-    socket.emit("botMessage", { message: botReply });
+    // Check if botReply is a valid response
+    if (botReply) {
+      // Send response back to frontend
+      socket.emit("botMessage", { message: botReply });
+    } else {
+      // Send fallback message if botReply is not valid
+      socket.emit("botMessage", { message: "🤖 I'm not sure how to help with that." });
+    }
   });
 
   socket.on("disconnect", () => {
     console.log(`❌ User Disconnected: ${socket.id}`);
   });
-});
-
-// User Registration
-app.post("/auth/register", async (req, res) => {
-  try {
-    const { firstname, lastname, email, password, phonenumber, userType } = req.body;
-    if (await User.findOne({ email })) return res.status(400).json({ message: "Email already registered" });
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ firstname, lastname, email, password: hashedPassword, phonenumber, userType });
-    await newUser.save();
-
-    const token = jwt.sign({ id: newUser._id, userType }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    res.json({ message: "Registration successful!", data: { token, user: newUser } });
-  } catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.message });
-  }
-});
-
-// User Login
-app.post("/auth/login", async (req, res) => {
-  try {
-    const { email, password, userType } = req.body;
-    const user = await User.findOne({ email, userType });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    const token = jwt.sign({ id: user._id, userType }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    console.log(`🔑 Generated Token: ${token}`); // Display the token in the console
-    res.json({ message: "Login successful!", data: { token, user } });
-  } catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.message });
-  }
 });
 
 // Start Server
