@@ -190,32 +190,22 @@ case "update_product": {
       }
 
       // ✅ 2. Order Management
-      case "place_order": {
-        if (orders.length === 0) return "❌ No order details provided.";
-        
-        const { name, quantity, buyerId } = orders[0];
-        const productName = name.toLowerCase();
-        const parsedQuantity = parseFloat(quantity);
-
-        const product = await Product.findOne({ name: productName });
-        if (!product || product.quantity < parsedQuantity) {
-          return `❌ Not enough stock for '${productName}'.`;
-        }
-
-        product.quantity -= parsedQuantity;
-        await product.save();
-
-        const newOrder = new Order({
-          productName,
-          quantity: parsedQuantity,
-          buyerId,
-          sellerId: userId,
-          status: "Placed",
-        });
-
-        await newOrder.save();
-        return `🛒 Order placed: ${parsedQuantity}kg of '${productName}'.`;
+      case "order_place": {
+        return jsonResponse.response.message || "✅ Order placed successfully.";
+    }
+    case "search_products": {
+      const products = jsonResponse.response.results;
+      if (!products || products.length === 0) {
+          return "❌ No products found.";
       }
+  
+      const productList = products
+          .map(p => `🛒 ${p.name}: ₹${p.price}/unit, Available: ${p.quantity}`)
+          .join("\n");
+  
+      return `🔍 Search Results:\n${productList}`;
+  }
+  
 
       case "cancel_order": {
         if (orders.length === 0) return "❌ No order specified.";

@@ -1,9 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import io from "socket.io-client";
-
-// Define the WebSocket server URL
-const SOCKET_SERVER_URL = "http://localhost:8080";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -12,82 +9,31 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    phonenumber: "",
-    userType: "", // Customer or Farmer
+    phone: "",
+    userType: "",
   });
-
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const [socket, setSocket] = useState(null);
 
-  useEffect(() => {
-    // Clean up WebSocket connection on component unmount
-    return () => {
-      if (socket) {
-        socket.disconnect();
-      }
-    };
-  }, [socket]);
-
-  // Handle input changes
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Validate form data
-  const validateFormData = (data) => {
-    if (!data.firstname || !data.lastname || !data.email || !data.password || !data.phonenumber || !data.userType) {
-      return "All fields are required";
-    }
-    if (data.password !== data.confirmPassword) {
-      return "Passwords do not match";
-    }
-    return null;
-  };
-
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMessage("");
-    setLoading(true);
-
-    const validationError = validateFormData(formData);
-    if (validationError) {
-      setErrorMessage(validationError);
-      setLoading(false);
+    if (formData.password !== formData.confirmPassword) {
+      setErrorMessage("Passwords do not match");
       return;
     }
-
+    setLoading(true);
     try {
-      const response = await fetch("http://localhost:8080/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        setErrorMessage(result.message || "Registration failed");
-        setLoading(false);
-        return;
-      }
-
-      // Save token & alert success
-      localStorage.setItem("token", result.data.token);
-      alert("Registration successful!");
-
-      // Establish WebSocket connection only after successful registration
-      const newSocket = io(SOCKET_SERVER_URL, {
-        query: { token: result.data.token },
-      });
-      setSocket(newSocket);
-
+      const response = await axios.post("http://localhost:8080/auth/register", formData);
+      console.log("Registration successful:", response.data);
       navigate("/auth/login");
     } catch (error) {
       console.error("Error:", error);
-      setErrorMessage("Network error. Please try again.");
+      setErrorMessage("Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -106,16 +52,16 @@ const Register = () => {
               User Type
             </label>
             <select
-  id="userType"
-  name="userType"
-  value={formData.userType}
-  onChange={handleChange}
-  className="w-full mt-1 p-2 border rounded-md focus:ring-green-500 text-black bg-white"
->
-  <option value="" className="text-black">Select User Type</option>
-  <option value="customer" className="text-black">Customer</option>
-  <option value="farmer" className="text-black">Farmer</option>
-</select>
+              id="userType"
+              name="userType"
+              value={formData.userType}
+              onChange={handleChange}
+              className="w-full mt-1 p-2 border rounded-md focus:ring-green-500 text-black bg-white"
+            >
+              <option value="" className="text-black">Select User Type</option>
+              <option value="customer" className="text-black">Customer</option>
+              <option value="farmer" className="text-black">Farmer</option>
+            </select>
           </div>
 
           <div className="mb-2">
@@ -155,8 +101,8 @@ const Register = () => {
             <label className="block text-sm font-medium text-gray-700">Phone Number</label>
             <input
               type="tel"
-              name="phonenumber"
-              value={formData.phonenumber}
+              name="phone"
+              value={formData.phone}
               onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded-md text-gray-600"
             />

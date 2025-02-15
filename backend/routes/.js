@@ -8,17 +8,16 @@ const router = express.Router();
 // User Registration
 router.post("/register", async (req, res) => {
   try {
-    const { firstname, lastname, email, password, phone, userType } = req.body;
+    const { firstname, lastname, email, password, phonenumber, userType } = req.body;
     if (await User.findOne({ email })) return res.status(400).json({ message: "Email already registered" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ firstname, lastname, email, password: hashedPassword, phone, userType });
+    const newUser = new User({ firstname, lastname, email, password: hashedPassword, phonenumber, userType });
     await newUser.save();
 
     const token = jwt.sign({ id: newUser._id, userType }, process.env.JWT_SECRET, { expiresIn: "1h" });
     res.json({ message: "Registration successful!", data: { token, user: newUser } });
   } catch (error) {
-    console.error(`❌ Error in /register: ${error.message}`);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
@@ -36,7 +35,6 @@ router.post("/login", async (req, res) => {
     console.log(`🔑 Generated Token: ${token}`); 
     res.json({ message: "Login successful!", data: { token, user } });
   } catch (error) {
-    console.error(`❌ Error in /login: ${error.message}`);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 });

@@ -46,7 +46,7 @@ const Chat = () => {
         {userType === "farmer" ? "🌾 Farmer's Chat" : "🛒 Customer Chat"}
       </h2>
       
-      <div className="border p-2 h-64 w-96 overflow-auto bg-white rounded-md">
+      <div className="border p-2 h-64 w-96 overflow-auto bg-white rounded-md text-gray-600">
         {messages.map((msg, index) => (
           <p key={index} className={`p-2 ${msg.sender === "You" ? "bg-green-300 text-right" : "bg-gray-200"}`}>
             <strong>{msg.sender}:</strong> {msg.message}

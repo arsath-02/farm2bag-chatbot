@@ -6,7 +6,7 @@ import re
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 from groq import Groq
-from pymongo import MongoClient
+from pymongo import MongoClient,ReturnDocument
 from datetime import datetime
 from bson import ObjectId
 
@@ -23,10 +23,11 @@ if not GROQ_API_KEY:
 client = Groq(api_key=GROQ_API_KEY)
 
 # Connect to Local MongoDB
-MONGO_URI = "mongodb://localhost:27017/"
+MONGO_URI = "mongodb+srv://arsath02062004:1230@user.xnp6k.mongodb.net/test?retryWrites=true&w=majority&appName=user"
 client_mongo = MongoClient(MONGO_URI)
-db = client_mongo["chatbotDB"]
+db = client_mongo["test"]
 products_collection = db["products"]
+orders_collection = db["orders"]
 
 print("✅ Connected to Local MongoDB!")
 
@@ -51,7 +52,7 @@ prompt_template = PromptTemplate(
     - update_product
     - show_me
     - view_listings
-    - search_products
+    - search_product
     - compare_prices
     - place_order
 
@@ -76,7 +77,8 @@ prompt_template = PromptTemplate(
     - Be engaging and conversational.
     - Adapt to any changes in user intent dynamically within the specified intents.
     - Stay focused on the task at hand and ensure user satisfaction.
-    - All the intents should be in the above given format
+    - It is very important that All the intents should be in the above given format
+    - i need or i want intents are come under search_product
     """
 )
 
@@ -153,12 +155,12 @@ def chat_bot(message, user_type, farmer_id):
         return {"intent": "view_listings", "entities": extracted_entities}
     if intent_data["intent"] == "show_me":
         return show_vegetables(extracted_entities)
-    if intent_data["intent"] == "search_products":
+    if intent_data["intent"] == "search_product":
         return search_products(extracted_entities.get("filters", {}).get("product_name", ""))
     if intent_data["intent"] == "compare_prices":
-        return compare_prices(extracted_entities.get("filters", {}).get("product_name", ""))
+        return compare_prices(extracted_entities.get("product_name", ""))
     if intent_data["intent"] == "place_order":
-        return order_place(farmer_id, extracted_entities.get("product", {}).get("name", ""), extracted_entities.get("product", {}).get("quantity", 0))
+        return order_place(farmer_id, extracted_entities.get("products", {}).get("name", ""), extracted_entities.get("products", {}).get("quantity", 0))
 
     return {"intent": "unknown", "entities": {}}
 
@@ -178,26 +180,32 @@ def show_vegetables(entities):
 from datetime import datetime
 from bson import ObjectId
 
+def extract_numeric_quantity(quantity):
+    """Extracts numeric value from a quantity string like '1kg'."""
+    match = re.search(r'\d+', str(quantity))  # Ensure quantity is a string
+    return int(match.group()) if match else None
+
 def order_place(user_id, product_name, quantity):
     """Places an order for a product after checking availability."""
 
     product_name = product_name.lower()
+    numeric_quantity = extract_numeric_quantity(quantity)
 
     # Atomically find and update product stock
     product = products_collection.find_one_and_update(
-        {"name": product_name, "quantity": {"$gte": quantity}},  
-        {"$inc": {"quantity": -quantity}},  
+        {"name": product_name, "quantity": {"$gte": numeric_quantity}},  
+        {"$inc": {"quantity": -numeric_quantity}},  
         return_document=True  
     )
 
     if product:
-        total_price = product["price"] * quantity  # Calculate total price
+        total_price = product["price"] * numeric_quantity  # Calculate total price
 
         order = {
             "_id": ObjectId(),
             "user_id": ObjectId(user_id),
             "product_name": product_name,
-            "quantity": quantity,
+            "quantity": numeric_quantity,
             "price_per_kg": product["price"],
             "total_price": total_price,
             "status": "Confirmed",
@@ -208,7 +216,7 @@ def order_place(user_id, product_name, quantity):
 
         return {
             "intent": "order_place",
-            "message": f"✅ Order placed: {quantity} kg of {product_name} at ₹{product['price']}/kg. Total: ₹{total_price}.",
+            "message": f"✅ Order placed: {numeric_quantity} kg of {product_name} at ₹{product['price']}/kg. Total: ₹{total_price}.",
             "order_id": str(order["_id"])
         }
     
@@ -217,15 +225,27 @@ def order_place(user_id, product_name, quantity):
         "message": f"❌ '{product_name}' is out of stock or insufficient quantity available."
     }
 
-
 def compare_prices(product_name):
     """Fetches and compares prices of a product from different sellers."""
     product_name = product_name.lower()
-    products = products_collection.find({"name": product_name})
+    
+    # Fetch products from MongoDB
+    products = list(products_collection.find({"name": product_name}))
 
-    price_list = [{"farmer_id": product["farmerId"], "price": product["price"], "quantity": product["quantity"]} for product in products]
+    # Extract price details
+    price_list = [
+        {
+            "farmer_id": product.get("farmerId"),
+            "price": product.get("price"),
+            "quantity": product.get("quantity")
+        }
+        for product in products
+    ]
 
-    return {"intent": "compare_prices", "results": price_list if price_list else f"❌ No listings found for '{product_name}'."}
+    return {
+        "intent": "compare_prices",
+        "results": price_list if price_list else []
+    }
 
 
 def search_products(query):

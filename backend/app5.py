@@ -23,9 +23,9 @@ if not GROQ_API_KEY:
 client = Groq(api_key=GROQ_API_KEY)
 
 # Connect to Local MongoDB
-MONGO_URI = "mongodb://localhost:27017/"
+MONGO_URI = "mongodb+srv://arsath02062004:1230@user.xnp6k.mongodb.net/test?retryWrites=true&w=majority&appName=user"
 client_mongo = MongoClient(MONGO_URI)
-db = client_mongo["chatbotDB"]
+db = client_mongo["test"]
 products_collection = db["products"]
 orders_collection = db["orders"]
 
@@ -175,7 +175,7 @@ def show_vegetables(entities):
 
 def extract_numeric_quantity(quantity):
     """Extracts numeric value from a quantity string like '1kg'."""
-    match = re.search(r'\d+', quantity)
+    match = re.search(r'\d+', str(quantity))  # Ensure quantity is a string
     return int(match.group()) if match else None
 
 def order_place(user_id, product_name, quantity):
@@ -188,7 +188,7 @@ def order_place(user_id, product_name, quantity):
     product = products_collection.find_one_and_update(
         {"name": product_name, "quantity": {"$gte": numeric_quantity}},  
         {"$inc": {"quantity": -numeric_quantity}},  
-        return_document=ReturnDocument.AFTER  
+        return_document=True  
     )
 
     if product:
@@ -205,7 +205,7 @@ def order_place(user_id, product_name, quantity):
             "createdAt": datetime.utcnow()
         }
         
-        orders_collection.insert_one(order)  # Insert order into the database
+        db["orders"].insert_one(order)  # Insert order into the database
 
         return {
             "intent": "order_place",
