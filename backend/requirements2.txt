@@ -1,0 +1,8 @@
+express
+http
+cors
+mongoose
+socket.io
+node-fetch
+dotenv
+jsonwebtoken
