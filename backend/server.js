@@ -38,7 +38,7 @@ const runFastAPIModel = async (message, userId) => {
   try {
     console.log(`📡 Sending message to FastAPI: ${message} for user: ${userId}`);
 
-    const response = await fetch("http://127.0.0.1:8080/predict", {
+    const response = await fetch("https://farm2bag-chatbot.onrender.com/predict", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message, userId }),
