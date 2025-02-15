@@ -1,0 +1,8 @@
+Flask
+flask-cors
+httpx
+langchain
+groq
+pymongo
+bson
+datetime
