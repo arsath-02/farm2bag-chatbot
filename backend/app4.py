@@ -90,7 +90,7 @@ def query_groq(message, user_type, farmer_id):
     for attempt in range(max_retries):
         try:
             completion = client.chat.completions.create(
-                model="llama3-70b-8192",
+                model="mixtral-8x7b-32768",
                 messages=[
                     {"role": "system", "content": "Extract intent and product details in pure JSON format. Ensure all product names are in lowercase."},
                     {"role": "user", "content": message}
